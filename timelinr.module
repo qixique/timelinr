@@ -1,0 +1,138 @@
+<?php
+/**
+*@file
+*implement various block to render view of custom sql
+*/
+
+/**
+*implement hook_block_info().
+*/
+function timelinr_block_info()
+{
+
+	$blocks['timelinr_view']=array(
+		'info'=>t('timelinr view'),
+		'status'=>true,
+		'region'=>BLOCK_REGION_NONE,
+		'weight'=>0,
+		// 'visibility'=>1,
+		);
+	return $blocks;
+}
+
+/*
+*implement hook_block_configure().
+*/
+function timelinr_block_configure($delta)
+{
+	$form=array();
+	switch ($delta) {
+		case 'timelinr_view':
+			
+		 $form['timelinr_view']=array(
+		 	'#type'=>'textfield',
+		 	'#title'=>'the number of record to display',
+		 	'#size'=>'6',
+		 	'#description'=>'enter the number of record that will appear in the block.',
+		 	'#default_value'=>variable_get('timelinr_view_count',5),
+		 	);
+			break;
+		
+		default:
+			
+			break;
+	}
+	return $form;
+}
+/*
+*implement hook_block_save().
+*/
+function timelinr_block_save($delta='',$edit=array())
+{
+	
+	switch ($delta) {
+		case 'timelinr_view':
+			
+			variable_set('timelinr_view_count',(int)$edit['timelinr_view']);
+			break;
+		
+		default:
+			
+			break;
+	}
+	return;
+}
+/*
+*implement hook_block_view()
+*/
+function timelinr_block_view($delta='')
+{
+	$block=array();
+	switch ($delta) {
+		case 'timelinr_view':		
+			$block['subject']=t('timelinr view');			
+			$block['content']=content_by_sql1($delta);
+			break;
+		
+		default:
+			
+			break;
+	}
+	return $block;
+}
+/*
+*a module-definded block content function.
+*/
+function content_by_sql1($delta='')
+{
+	switch ($delta) {
+		case 'timelinr_view':
+			if(user_access('access content'))
+			$no_record=variable_get("timelinr_view_count",5);
+			
+			$result=db_query("SELECT n.nid,fm.fid,fm.uri,n.title,SUBSTR(FROM_UNIXTIME(n.created),6,5) as created,fdb.body_value from field_data_field_image img,node n ,file_managed fm,field_data_body fdb where n.nid=img.entity_id and fm.fid=img.field_image_fid and n.nid=fdb.entity_id ORDER BY n.created desc
+ limit $no_record");			
+			$items=array();
+			$counter=1;
+			foreach ($result as $value) {
+				$style="forniceview";
+				$image_uri=$value->uri;
+				$derivative_uri = image_style_path($style, $value->uri);
+				$success=file_exists($derivative_uri) || image_style_create_derivative($style, $image_uri, $derivative_uri);
+			$img=image_style_url($style,$derivative_uri);
+			
+			// $items[] = "<div class='aa'>".l("<em class='blue1'>".$counter."</em>"."<img src='$img'><i>$value->title</i>",file_create_url($value->uri),array('html'=>true))."</div>";	
+			
+			
+			$items[] =array('data' => "<div class='aa'>".l("<img src='$img'/>",base_path()."node/".$value->nid,array('html'=>true)).check_markup($value->body_value,"full_html",'',false)."</div>",'id'=>'data111');
+			$items1[]=l($value->created,"#data111");	
+			$counter++;
+
+			}
+		break;
+		default:
+			
+			break;
+	}
+	// theme_item_list(array('items'=>$items,'type'=>'li','attributes'=>array('id'=>'date1')));
+
+	// theme_item_list(array('items' => $items, 'title' => '11', 'type' => 'li', 'attributes' => array('data1'));
+	// return array('#prefix'=>"<div id='timeline'>",'#suffix'=>"<div>",'#markup'=>theme('item_list',array('items'=>$items)));
+	return array('#markup'=>theme('item_list',array('items'=>$items1,'type'=>'ul','attributes'=>array('id'=>'dates'))).theme('item_list',array('items'=>$items,'type'=>'ul','attributes'=>array('id'=>'issues'))),'#attached'=> array('css'=> array(drupal_get_path('module', 'timelinr').'/css/timelinr.css'),'js'=>array(drupal_get_path('module', 'timelinr').'/js/timelinr.js')));
+
+
+}
+
+
+ function thimelinr_theme($existing, $type, $theme, $path)
+ {
+ 	$themes['timelinr_timelinr_view'] = array( // replace module--delta with your block template suggestions
+	    'variables' => array('block' => array()),   
+	    'template' =>'block--timelinr', // the name fo your .tpl.php file.
+	   // 'path' => $path . '/templates',   // path to the template in your module
+	    'base hook'=>'block',
+	   'path' => drupal_get_path('module', 'timelinr'),
+	  );
+ 
+	return $themes; 
+ }

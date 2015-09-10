@@ -1,0 +1,5 @@
+name=timelinr
+description= blocks for custom sql and style
+core=7.x
+versiton=VERSION
+files[]=timelinr.module
